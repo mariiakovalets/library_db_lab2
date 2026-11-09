@@ -1,0 +1,43 @@
+# All three databases run in containers with the same CPU and memory limits,
+# so PostgreSQL and MongoDB are compared on equal terms.
+# Start: docker compose up -d
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: library
+    # 512 MB of cache, the same size MongoDB gives WiredTiger under a 2 GB limit
+    command: ["postgres", "-c", "shared_buffers=512MB"]
+    ports:
+      - "5433:5432"  # 5432 is taken by Postgres.app with the first lab
+    volumes:
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/1_schema.sql:ro
+      - pg_data:/var/lib/postgresql
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2g
+
+  mongo:
+    image: mongo:8.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2g
+
+  redis:
+    image: redis:8.0
+    ports:
+      - "6379:6379"
+
+volumes:
+  pg_data:
+  mongo_data:
