@@ -1,0 +1,113 @@
+
+=== 1. String: a value under a key
+> SET lib:book:1:title Кобзар
+OK
+> GET lib:book:1:title
+Кобзар
+
+=== 2. String with a time limit: a reading room seat is held for 15 minutes
+> SET lib:seat:12 reader:5 EX 900 NX
+OK
+> SET lib:seat:12 reader:6 EX 900 NX
+(nil)
+> GET lib:seat:12
+reader:5
+> TTL lib:seat:12
+900
+
+=== 3. Counter: views of a book page
+> INCR lib:book:1:views
+1
+> INCR lib:book:1:views
+2
+> INCRBY lib:book:1:views 10
+12
+> GET lib:book:1:views
+12
+
+=== 4. Hash: cached book card, kept for one hour
+> HSET lib:book:1 title Кобзар author "Тарас Шевченко" year 2019 available 2
+4
+> HGET lib:book:1 author
+Тарас Шевченко
+> HINCRBY lib:book:1 available -1
+1
+> HGETALL lib:book:1
+title
+Кобзар
+author
+Тарас Шевченко
+year
+2019
+available
+1
+> EXPIRE lib:book:1 3600
+1
+> TTL lib:book:1
+3600
+
+=== 5. List: the last books a reader opened, only the 3 most recent are kept
+> LPUSH lib:reader:5:recent book:1 book:8 book:3 book:6
+4
+> LTRIM lib:reader:5:recent 0 2
+OK
+> LRANGE lib:reader:5:recent 0 -1
+book:6
+book:3
+book:8
+
+=== 6. Set: favourite books, and the ones two readers have in common
+> SADD lib:reader:5:favorites book:1 book:3 book:8
+3
+> SADD lib:reader:6:favorites book:3 book:8 book:4
+3
+> SISMEMBER lib:reader:5:favorites book:4
+0
+> SINTER lib:reader:5:favorites lib:reader:6:favorites
+book:3
+book:8
+
+=== 7. Sorted set: top books by number of loans
+> ZINCRBY lib:popular 5 book:1
+5
+> ZINCRBY lib:popular 3 book:8
+3
+> ZINCRBY lib:popular 7 book:3
+7
+> ZINCRBY lib:popular 1 book:1
+6
+> ZREVRANGE lib:popular 0 2 WITHSCORES
+book:3
+7
+book:1
+6
+book:8
+3
+> ZSCORE lib:popular book:1
+6
+
+=== 8. Expiry in action: a key that lives 2 seconds
+> SET lib:confirm-code 4821 EX 2
+OK
+> GET lib:confirm-code
+4821
+(waiting 3 seconds)
+> GET lib:confirm-code
+(nil)
+> EXISTS lib:confirm-code
+0
+
+=== 9. Working with keys
+> TYPE lib:popular
+zset
+> TYPE lib:book:1
+hash
+> SCAN 0 MATCH lib:reader:* COUNT 100
+0
+lib:reader:5:favorites
+lib:reader:5:recent
+lib:reader:6:favorites
+> DEL lib:book:1:title
+1
+> EXISTS lib:book:1:title
+0
